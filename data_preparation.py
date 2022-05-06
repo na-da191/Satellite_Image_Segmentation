@@ -34,15 +34,10 @@ temp_mask = cv2.imread("Data/masks/M-34-56-A-b-1-4.tif") #3 channels but all sam
 labels, count = np.unique(temp_mask[:,:,0], return_counts=True) #Check for each channel. All chanels are identical
 print("Labels are: ", labels, " and the counts are: ", count)
 
-#Now, crop each large image into patches of 256x256. Save them into a directory 
-#so we can use data augmentation and read directly from the drive. 
+#crop each large image into patches of 256x256. Save them into a directory  
 root_directory = 'Data/'
 
 patch_size = 256
-#Read images from repsective 'images' subdirectory
-#As all images are of different size we have 2 options, either resize or crop
-#But, some images are too large and some small. Resizing will change the size of real objects.
-#Therefore, we will crop them to a nearest size divisible by 256 and then 
 #divide all images into patches of 256x256x3. 
 img_dir=root_directory+"images/"
 img_dir=root_directory+"images/"
@@ -60,26 +55,23 @@ for path, subdirs, files in os.walk(img_dir):
             SIZE_Y = (image.shape[0]//patch_size)*patch_size #Nearest size divisible by our patch size
             image = Image.fromarray(image)
             image = image.crop((0 ,0, SIZE_X, SIZE_Y))  #Crop from top left corner
-            #image = image.resize((SIZE_X, SIZE_Y))  #Try not to resize for semantic segmentation
             image = np.array(image)             
    
             #Extract patches from each image
             print("Now patchifying image:", path+"/"+image_name)
-            patches_img = patchify(image, (256, 256, 3), step=256)  #Step=256 for 256 patches means no overlap
+            patches_img = patchify(image, (256, 256, 3), step=256)  
     
             for i in range(patches_img.shape[0]):
                 for j in range(patches_img.shape[1]):
                     
                     single_patch_img = patches_img[i,j,:,:]
-                    #single_patch_img = (single_patch_img.astype('float32')) / 255. #We will preprocess using one of the backbones
-                    single_patch_img = single_patch_img[0] #Drop the extra unecessary dimension that patchify adds.                               
+                    single_patch_img = single_patch_img[0] #Droping  the extra unecessary dimension that patchify adds.                               
                     
                     cv2.imwrite(root_directory+"256_patches/images/"+
                                image_name+"patch_"+str(i)+str(j)+".tif", single_patch_img)
-                    #image_dataset.append(single_patch_img)
                     
-#Now do the same as above for masks
-#For this specific dataset we could have added masks to the above code as masks have extension png
+                    
+#We  do the same as above for masks
 mask_dir=root_directory+"masks/"
 for path, subdirs, files in os.walk(mask_dir):
     #print(path)  
@@ -88,12 +80,11 @@ for path, subdirs, files in os.walk(mask_dir):
     masks = os.listdir(path)  #List of all image names in this subdirectory
     for i, mask_name in enumerate(masks):  
         if mask_name.endswith(".tif"):           
-            mask = cv2.imread(path+"/"+mask_name, 0)  #Read each image as Grey (or color but remember to map each color to an integer)
+            mask = cv2.imread(path+"/"+mask_name, 0)  
             SIZE_X = (mask.shape[1]//patch_size)*patch_size #Nearest size divisible by our patch size
             SIZE_Y = (mask.shape[0]//patch_size)*patch_size #Nearest size divisible by our patch size
             mask = Image.fromarray(mask)
             mask = mask.crop((0 ,0, SIZE_X, SIZE_Y))  #Crop from top left corner
-            #mask = mask.resize((SIZE_X, SIZE_Y))  #Try not to resize for semantic segmentation
             mask = np.array(mask)             
    
             #Extract patches from each image
@@ -103,9 +94,7 @@ for path, subdirs, files in os.walk(mask_dir):
             for i in range(patches_mask.shape[0]):
                 for j in range(patches_mask.shape[1]):
                     
-                    single_patch_mask = patches_mask[i,j,:,:]
-                    #single_patch_img = (single_patch_img.astype('float32')) / 255. #No need to scale masks, but you can do it if you want
-                    #single_patch_mask = single_patch_mask[0] #Drop the extra unecessary dimension that patchify adds.                               
+                    single_patch_mask = patches_mask[i,j,:,:]                            
                     cv2.imwrite(root_directory+"256_patches/masks/"+
                                mask_name+"patch_"+str(i)+str(j)+".tif", single_patch_mask)
 
@@ -137,7 +126,7 @@ plt.show()
 
 ###########################################################################
 
-#Now, let us copy images and masks with real information to a new folder.
+# we copy images and masks with real information to a new folder.
 # real information = if mask has decent amount of labels other than 0. 
 
 useless=0  #Useless image counter
@@ -149,7 +138,7 @@ for img in range(len(img_list)):   #Using t1_list as all lists are of same size
     temp_image=cv2.imread(train_img_dir+img_list[img], 1)
    
     temp_mask=cv2.imread(train_mask_dir+msk_list[img], 0)
-    #temp_mask=temp_mask.astype(np.uint8)
+   
     
     val, counts = np.unique(temp_mask, return_counts=True)
     
@@ -165,18 +154,11 @@ for img in range(len(img_list)):   #Using t1_list as all lists are of same size
 print("Total useful images are: ", len(img_list)-useless)  #20,075
 print("Total useless images are: ", useless) #21,571
 ###############################################################
-#Now split the data into training, validation and testing. 
+# spliting  the data into training, validation and testing. 
 
-"""
-Code for splitting folder into train, test, and val.
-Once the new folders are created rename them and arrange in the format below to be used
-for semantic segmentation using data generators. 
-pip install split-folders
-"""
 import splitfolders  
 
 input_folder = 'Data/256_patches/images_with_useful_info/'
 output_folder = 'Data/data_for_training_and_testing/'
 # Split with a ratio.
-# To only split into training and validation set, set a tuple to `ratio`, i.e, `(.8, .2)`.
 splitfolders.ratio(input_folder, output=output_folder, seed=42, ratio=(.75, .25), group_prefix=None) # default values

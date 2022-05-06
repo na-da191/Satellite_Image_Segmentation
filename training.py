@@ -6,13 +6,7 @@ labels:
     1: Buildings
     2: Woodlands
     3: Water
-You can use any U-net but this code demonstrates the use of pretrained encoder 
-in the U-net - available as part of segmentation models library. 
-To install the segmentation models library: pip install -U segmentation-models
-If you are running into generic_utils error when loading segmentation models library
-watch this video to fix it: https://youtu.be/syJZxDtLujs
-Use the landcover_prepare_data.py to prepare your data. 
-e.g., divide images to smaller patches, svae only the patches with real labels, split to train and val. 
+
 """
 
 import os
@@ -26,14 +20,8 @@ import tensorflow as tf
 physical_devices = tf.config.list_physical_devices("GPU")
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
-#tf.compat.v1.disable_eager_execution() #in case the model gets very slow, may be due to a bug in TF2.0. Uncomment this. 
-#https://github.com/tensorflow/tensorflow/issues/33024
-
-#Also check this in case you notice training to be getting increasingly slow each epoch.
-# https://stackoverflow.com/questions/53683164/keras-occupies-an-indefinitely-increasing-amount-of-memory-for-each-epoch
-
 ################################################################
-#Get an understanding by looking at a few random images and masks # -*- coding: utf-8 -*-
+#Get an understanding by looking at a few random images and masks 
 train_img_dir = "Data/data_for_keras/train_images/train/"
 train_mask_dir = "Data/data_for_keras/train_masks/train/"
 
@@ -70,12 +58,11 @@ from sklearn.preprocessing import MinMaxScaler
 scaler = MinMaxScaler()
 from tensorflow.keras.utils import to_categorical
 
-#Use this to preprocess input for transfer learning
+
 BACKBONE = 'resnet34'
 preprocess_input = sm.get_preprocessing(BACKBONE)
 
-#Define a function to perform additional preprocessing after datagen.
-#For example, scale images, convert masks to categorical, etc. 
+#Defining  a function to perform additional preprocessing after datagen.
 def preprocess_data(img, mask, num_class):
     #Scale images
     img = scaler.fit_transform(img.reshape(-1, img.shape[-1])).reshape(img.shape)
@@ -85,9 +72,7 @@ def preprocess_data(img, mask, num_class):
       
     return (img,mask)
 
-#Define the generator.
-#We are not doing any rotation or zoom to make sure mask values are not interpolated.
-#It is important to keep pixel values in mask as 0, 1, 2, 3, .....
+#Defining  the generator.
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 def trainGenerator(train_img_path, train_mask_path, num_class):
     
@@ -126,8 +111,6 @@ val_img_path = "Data/data_for_keras/val_images/"
 val_mask_path = "Data/data_for_keras/val_masks/"
 val_img_gen = trainGenerator(val_img_path, val_mask_path, num_class=5)
 
-#Make sure the generator is working and that images and masks are indeed lined up. 
-#Verify generator.... In python 3 next() is renamed as __next__()
 x, y = train_img_gen.__next__()
 
 for i in range(0,3):
@@ -166,12 +149,8 @@ IMG_CHANNELS = x.shape[3]
 n_classes=5
 
 #############################################################################
-#Use transfer learning using pretrained encoder in the U-Net
-#(make sure you uncomment the preprocess_input part in the
-# preprocess_data function above)
-################################################################
+
 #Define the model
-# define model
 sm.set_framework('tf.keras')
 
 sm.framework()
